@@ -32,7 +32,7 @@ export function MarketRadarDashboard() {
           {/* Right Column */}
           <div className="lg:col-span-4 min-w-0">
             {/* ✅ 모바일에서는 sticky/스크롤 박스 OFF, lg부터 ON */}
-            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-20">
               <AnomalyFeed market={market} timeRange={timeRange} />
               <AlertSettings />
             </div>

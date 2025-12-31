@@ -46,8 +46,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ko" className="h-full overflow-x-hidden">
-      <body className="font-sans antialiased min-h-full overflow-x-hidden">
+    <html lang="ko">
+      <body className="font-sans antialiased">
       <QueryProvider>
         <ThemeProvider>
           {children}
