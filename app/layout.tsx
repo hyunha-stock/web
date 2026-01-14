@@ -47,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="font-sans antialiased bg-white">
+      <body className="font-sans antialiased bg-white dark:bg-background">
       <QueryProvider>
         <ThemeProvider>
           {children}

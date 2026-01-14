@@ -28,7 +28,8 @@ function TableHeadCell({
   return (
     <th
       className={cn(
-        "px-3 py-2 text-left text-xs font-medium text-muted-foreground bg-white",
+        // ✅ 다크모드 대응: bg-white 제거, muted 배경 사용
+        "px-3 py-2 text-left text-xs font-medium text-muted-foreground bg-muted/40",
         className,
       )}
     >
@@ -44,7 +45,17 @@ function TableCell({
   children: React.ReactNode
   className?: string
 }) {
-  return <td className={cn("px-3 py-2 text-sm bg-white", className)}>{children}</td>
+  return (
+    <td
+      className={cn(
+        // ✅ bg-white 제거: row hover 배경이 셀에 막히지 않게
+        "px-3 py-2 text-sm text-foreground",
+        className,
+      )}
+    >
+      {children}
+    </td>
+  )
 }
 
 /** ✅ 모바일 카드 리스트 */
@@ -66,6 +77,7 @@ function MobileCardList({
   const up = tone === "up"
 
   return (
+    // ✅ 이미 shadcn 카드 토큰 쓰고 있어서 그대로 OK
     <div className="rounded-xl border border-border bg-card">
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border">
         <div className="flex items-center gap-2">
@@ -93,7 +105,7 @@ function MobileCardList({
               <Link
                 key={`m:${tone}:${s.shortStockCode}`}
                 href={href}
-                className="block px-3 py-3 hover:bg-secondary/30 transition-colors"
+                className="block px-3 py-3 hover:bg-muted/40 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -141,12 +153,6 @@ function MobileCardList({
   )
 }
 
-/**
- * ✅ 데스크톱: 선 전부 제거 + 흰 배경
- * ✅ hover 시 "행 전체" 배경이 들어가도록:
- *   - <tr>에 hover 주는 건 table 레이아웃에서 셀 배경 때문에 티가 덜 날 수 있어
- *   - 그래서 row를 <Link>로 감싼 "block row"를 만들어서 hover 배경을 확실하게 줌
- */
 function MoversTable({
                        title,
                        icon,
@@ -174,8 +180,9 @@ function MoversTable({
         <span className="text-xs text-muted-foreground">TOP 10</span>
       </div>
 
-      <div className="w-full overflow-x-auto bg-white">
-        <table className="w-full min-w-[420px] border-collapse bg-white">
+      {/* ✅ 다크모드 대응: bg-white → bg-background */}
+      <div className="w-full overflow-x-auto bg-background">
+        <table className="w-full min-w-[420px] border-collapse bg-background">
           <thead>
           <tr>
             <TableHeadCell className="w-[56px]">#</TableHeadCell>
@@ -188,7 +195,7 @@ function MoversTable({
           <tbody>
           {isLoading && (
             <tr>
-              <td colSpan={4} className="px-3 py-10 text-center text-sm text-muted-foreground bg-white">
+              <td colSpan={4} className="px-3 py-10 text-center text-sm text-muted-foreground">
                 불러오는 중…
               </td>
             </tr>
@@ -196,7 +203,7 @@ function MoversTable({
 
           {!isLoading && isError && (
             <tr>
-              <td colSpan={4} className="px-3 py-10 text-center text-sm text-destructive bg-white">
+              <td colSpan={4} className="px-3 py-10 text-center text-sm text-destructive">
                 데이터를 불러오지 못했어요.
               </td>
             </tr>
@@ -204,7 +211,7 @@ function MoversTable({
 
           {!isLoading && !isError && items.length === 0 && (
             <tr>
-              <td colSpan={4} className="px-3 py-10 text-center text-sm text-muted-foreground bg-white">
+              <td colSpan={4} className="px-3 py-10 text-center text-sm text-muted-foreground">
                 표시할 데이터가 없어요.
               </td>
             </tr>
@@ -216,40 +223,28 @@ function MoversTable({
               const href = `/stock/${s.shortStockCode}`
               const rate = s.changeRateFromPrevDay
 
-              // ✅ 행 전체 hover 배경: Link를 block row로 사용
-              // table 안에서 Link로 tr 자체를 감쌀 수는 없어서,
-              // "tr -> td(colSpan=4) -> Link" 구조로 만들고, 내부는 grid로 열 맞춤
               return (
-                <tr key={`${kind}:${s.shortStockCode}`} className="bg-white">
-                  <td colSpan={4} className="p-0 bg-white">
+                <tr key={`${kind}:${s.shortStockCode}`}>
+                  <td colSpan={4} className="p-0">
                     <Link
                       href={href}
                       className={cn(
-                        "block w-full bg-white transition-colors",
-                        "hover:bg-muted/40",
-                        "focus:bg-muted/40 focus:outline-none",
+                        "block w-full transition-colors",
+                        // ✅ 다크/라이트 둘 다 자연스러운 hover
+                        "hover:bg-muted/40 focus:bg-muted/40 focus:outline-none",
                       )}
                     >
-                      <div
-                        className={cn(
-                          "grid items-center",
-                          // 4컬럼 폭 (thead와 맞춰야 함)
-                          "grid-cols-[56px_1fr_auto_auto]",
-                        )}
-                      >
-                        {/* # */}
+                      <div className="grid items-center grid-cols-[56px_1fr_auto_auto]">
                         <div className="px-3 py-2 text-sm text-muted-foreground tabular-nums">{idx + 1}</div>
 
-                        {/* 종목 */}
                         <div className="px-3 py-2 min-w-0">
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-foreground truncate hover:underline">{s.stockName}</span>
+                            <span className="font-semibold text-foreground truncate hover:underline">{s.stockName}</span>
                             <span className="text-xs text-muted-foreground shrink-0">{s.shortStockCode}</span>
                           </div>
                         </div>
 
-                        {/* 현재가 */}
-                        <div className="px-3 py-2 text-sm tabular-nums whitespace-nowrap text-right">
+                        <div className="px-3 py-2 text-sm tabular-nums whitespace-nowrap text-right text-foreground">
                           {formatNumber(s.currentPrice)}원
                           <span className="ml-2 hidden lg:inline text-xs text-muted-foreground">
                               ({s.changeFromPrevDay >= 0 ? "▲" : "▼"}
@@ -257,7 +252,6 @@ function MoversTable({
                             </span>
                         </div>
 
-                        {/* 등락률 */}
                         <div
                           className={cn(
                             "px-3 py-2 text-sm tabular-nums whitespace-nowrap text-right font-medium",
@@ -295,7 +289,6 @@ export function PriceMovers({ market }: PriceMoversProps) {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="w-full">
-        {/* Mobile: 카드 */}
         <div className="md:hidden space-y-3">
           <MobileCardList
             title="상승"
@@ -315,8 +308,8 @@ export function PriceMovers({ market }: PriceMoversProps) {
           />
         </div>
 
-        {/* Desktop: 선 전부 제거 + 흰 배경 + 행 전체 hover */}
-        <div className="hidden md:flex flex-row gap-8 bg-white">
+        {/* ✅ 다크모드 대응: bg-white 제거 */}
+        <div className="hidden md:flex flex-row gap-8">
           <MoversTable
             title="상승"
             icon={<TrendingUp className="h-4 w-4 text-chart-1" />}
