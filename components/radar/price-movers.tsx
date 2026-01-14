@@ -78,7 +78,7 @@ function MobileCardList({
 
   return (
     // ✅ 이미 shadcn 카드 토큰 쓰고 있어서 그대로 OK
-    <div className="rounded-xl border border-border bg-card">
+    <div className="rounded-xl border border-border">
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border">
         <div className="flex items-center gap-2">
           {icon}

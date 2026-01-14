@@ -5,7 +5,7 @@
 
 /* Light theme as default */
 :root {
-  --background: oklch(0.98 0.005 260);
+  --background: oklch(1 0 0);
   --foreground: oklch(0.15 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.15 0 0);

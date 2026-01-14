@@ -1,28 +1,16 @@
 "use client"
 
-import { useEffect, useMemo, useState, useRef } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useMemo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Zap,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  ExternalLink,
-  Sparkles,
-  Pause,
-  Play,
-  Volume2,
-  VolumeX,
-  Clock,
-} from "lucide-react"
+import { Zap, TrendingUp, TrendingDown, Minus, ExternalLink, Sparkles, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useRealtimeNews } from "@/domain/stock/queries/useRealtimeNews"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 // =========================
-// Server DTO (백엔드에서 오는 데이터)
+// Server DTO
 // =========================
 export type RealtimeNewsDto = {
   newsId: string
@@ -30,12 +18,9 @@ export type RealtimeNewsDto = {
   description: string
   source: string
   url: string
-  crawledAt: Date | string // 서버가 string으로 줄 수도 있으니 허용
+  crawledAt: Date | string
 }
 
-// =========================
-// UI Model (렌더링용)
-// =========================
 type Sentiment = "positive" | "negative" | "neutral"
 
 type RealtimeNewsUi = {
@@ -51,13 +36,16 @@ type RealtimeNewsUi = {
   url: string
 }
 
-// -------------------------
-// 유틸
-// -------------------------
 const toEpochMs = (d: Date | string): number => {
   if (d instanceof Date) return d.getTime()
   const t = Date.parse(d)
   return Number.isFinite(t) ? t : Date.now()
+}
+
+const truncate70 = (s: string, max = 70) => {
+  const text = (s ?? "").trim()
+  if (!text) return ""
+  return text.length > max ? `${text.slice(0, max)}…` : text
 }
 
 const guessSentiment = (title: string, desc?: string): Sentiment => {
@@ -84,12 +72,9 @@ const isBreakingByText = (title: string) => {
   return title.includes("속보") || title.includes("긴급") || title.includes("리콜") || title.includes("사고")
 }
 
-// UI 배지/아이콘
-const getTimeDiff = (timestamp: number) => {
-  const diff = Date.now() - timestamp
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-
+const getTimeDiff = (nowMs: number, timestamp: number) => {
+  const diff = nowMs - timestamp
+  const minutes = Math.floor(diff / 1000 / 60)
   if (minutes < 1) return "방금 전"
   if (minutes < 60) return `${minutes}분 전`
   return `${Math.floor(minutes / 60)}시간 전`
@@ -110,29 +95,25 @@ const getSentimentBadge = (sentiment: Sentiment) => {
   switch (sentiment) {
     case "positive":
       return (
-        <Badge variant="outline" className="border-red-500/50 text-red-500 text-xs">
+        <Badge variant="outline" className="border-red-500/50 text-red-500 text-[11px] px-1.5 py-0">
           호재
         </Badge>
       )
     case "negative":
       return (
-        <Badge variant="outline" className="border-blue-500/50 text-blue-500 text-xs">
+        <Badge variant="outline" className="border-blue-500/50 text-blue-500 text-[11px] px-1.5 py-0">
           악재
         </Badge>
       )
     default:
       return (
-        <Badge variant="outline" className="text-muted-foreground text-xs">
+        <Badge variant="outline" className="text-muted-foreground text-[11px] px-1.5 py-0">
           중립
         </Badge>
       )
   }
 }
 
-// -------------------------
-// 핵심: 서버 data -> UI 모델로 변환
-// (relatedStocks / aiSummary 가 아직 없으면 최소값으로 채움)
-// -------------------------
 const mapDtoToUi = (dto: RealtimeNewsDto): RealtimeNewsUi => {
   const sentiment = guessSentiment(dto.title, dto.description)
   const category = guessCategory(dto.title, dto.description)
@@ -142,7 +123,7 @@ const mapDtoToUi = (dto: RealtimeNewsDto): RealtimeNewsUi => {
     source: dto.source,
     timestamp: toEpochMs(dto.crawledAt),
     sentiment,
-    relatedStocks: [], // TODO: 서버에서 ticker 목록 주면 여기 매핑
+    relatedStocks: [],
     aiSummary: dto.description || "요약 준비 중",
     category,
     isBreaking: isBreakingByText(dto.title),
@@ -151,117 +132,161 @@ const mapDtoToUi = (dto: RealtimeNewsDto): RealtimeNewsUi => {
 }
 
 export function RealtimeNews() {
-  const [isPaused, setIsPaused] = useState(false)
-  const [soundEnabled, setSoundEnabled] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  // 서버 SSE/폴링 등으로 들어오는 데이터라고 가정
   const { data } = useRealtimeNews()
   const safeData: RealtimeNewsDto[] = Array.isArray(data) ? (data as any) : []
 
-  // 서버 뉴스 -> UI 변환
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 30_000)
+    return () => clearInterval(t)
+  }, [])
+
   const serverNews: RealtimeNewsUi[] = useMemo(() => {
-    return safeData
-      .map(mapDtoToUi)
+    return safeData.map(mapDtoToUi).sort((a, b) => b.timestamp - a.timestamp)
   }, [safeData])
 
-
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Zap className="h-5 w-5 text-chart-4" />
-            실시간 뉴스
-            <Badge variant="secondary" className="ml-2 animate-pulse bg-red-500/20 text-red-500">
-              LIVE
-            </Badge>
-          </CardTitle>
-
+    <div className="min-w-0">
+      {/* 헤더 */}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Zap className="h-4 w-4 text-chart-4 shrink-0" />
+          <h3 className="text-sm font-semibold text-foreground">실시간 뉴스</h3>
+          <Badge variant="secondary" className="animate-pulse bg-red-500/20 text-red-500 text-[11px]">
+            LIVE
+          </Badge>
         </div>
-      </CardHeader>
+        <div className="text-xs text-muted-foreground shrink-0">
+          {serverNews.length.toLocaleString("ko-KR")}건
+        </div>
+      </div>
 
-      <CardContent>
-        <div ref={scrollRef} className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-          {serverNews.map((news, index) => (
-            <div
-              key={news.id}
-              className={cn(
-                "p-3 rounded-lg border transition-all",
-                index === 0 && "animate-in slide-in-from-top-2 duration-300",
-                news.isBreaking && "border-chart-4/50 bg-chart-4/5",
-                news.sentiment === "positive" && !news.isBreaking && "border-red-500/20",
-                news.sentiment === "negative" && !news.isBreaking && "border-blue-500/20",
-                news.sentiment === "neutral" && !news.isBreaking && "border-border",
-              )}
-            >
-              <div className="flex items-start gap-2">
-                {getSentimentIcon(news.sentiment)}
+      {/* ✅ border 제거 */}
+      <div className="bg-background">
+        <div className="max-h-[520px] overflow-auto">
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="sticky top-0 z-10 bg-background w-[44px] px-2 py-2" />
+                <TableHead className="sticky top-0 z-10 bg-background w-[88px] px-2 py-2">
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    시간
+                  </span>
+                </TableHead>
+                <TableHead className="sticky top-0 z-10 bg-background w-[210px] px-2 py-2">
+                  분류
+                </TableHead>
+                <TableHead className="sticky top-0 z-10 bg-background px-2 py-2">
+                  제목 / 요약
+                </TableHead>
+                <TableHead className="sticky top-0 z-10 bg-background w-[220px] px-2 py-2 hidden md:table-cell">
+                  관련 종목
+                </TableHead>
+                <TableHead className="sticky top-0 z-10 bg-background w-[70px] px-2 py-2 text-right">
+                  원문
+                </TableHead>
+              </TableRow>
+            </TableHeader>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    {news.isBreaking && <Badge className="bg-chart-4 text-white text-xs animate-pulse">속보</Badge>}
+            <TableBody>
+              {serverNews.map((news) => (
+                <TableRow
+                  key={news.id}
+                  className={cn("hover:bg-muted/40", news.isBreaking && "bg-chart-4/5")}
+                >
+                  <TableCell className="px-2 py-2 align-top">{getSentimentIcon(news.sentiment)}</TableCell>
 
-                    <Badge variant="secondary" className="text-xs shrink-0">
-                      {news.category}
-                    </Badge>
+                  <TableCell className="px-2 py-2 align-top text-muted-foreground whitespace-nowrap">
+                    {getTimeDiff(nowMs, news.timestamp)}
+                  </TableCell>
 
-                    {getSentimentBadge(news.sentiment)}
+                  <TableCell className="px-2 py-2 align-top">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {news.isBreaking && (
+                        <Badge className="bg-chart-4 text-white text-[11px] px-1.5 py-0 animate-pulse">
+                          속보
+                        </Badge>
+                      )}
+                      <Badge variant="secondary" className="text-[11px] px-1.5 py-0">
+                        {news.category}
+                      </Badge>
+                      {getSentimentBadge(news.sentiment)}
+                      <span className="text-[11px] text-muted-foreground ml-1 truncate max-w-[120px]">
+                        {news.source}
+                      </span>
+                    </div>
+                  </TableCell>
 
-                    <span className="text-xs text-muted-foreground">{news.source}</span>
+                  <TableCell className="px-2 py-2 align-top">
+                    <div className="min-w-0">
+                      {/* ✅ 제목 70자 컷 */}
+                      <div
+                        className="text-sm font-medium leading-snug line-clamp-1"
+                        title={news.title}
+                      >
+                        {truncate70(news.title, 70)}
+                      </div>
 
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {getTimeDiff(news.timestamp)}
-                    </span>
-                  </div>
+                      {/* ✅ 요약 70자 컷 */}
+                      <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                        <Sparkles className="h-3 w-3 text-chart-4 shrink-0" />
+                        <span
+                          className="line-clamp-1"
+                          title={news.aiSummary}
+                        >
+                          {truncate70(news.aiSummary, 70)}
+                        </span>
+                      </div>
+                    </div>
+                  </TableCell>
 
-                  <p className="text-sm font-medium text-foreground line-clamp-2">{news.title}</p>
-
-                  {/* AI 요약 */}
-                  <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
-                    <Sparkles className="h-3 w-3 text-chart-4 shrink-0" />
-                    <span className="line-clamp-1">{news.aiSummary}</span>
-                  </div>
-
-                  {/* 관련 종목 + 원문 보기 */}
-                  <div className="flex items-center justify-between mt-2 gap-2">
-                    <div className="flex flex-wrap gap-1 flex-1 min-w-0">
+                  <TableCell className="px-2 py-2 align-top hidden md:table-cell">
+                    <div className="flex flex-wrap gap-1">
                       {news.relatedStocks.length > 0 ? (
-                        news.relatedStocks.slice(0, 3).map((stock) => (
+                        news.relatedStocks.slice(0, 4).map((stock) => (
                           <Link key={stock.ticker} href={`/stock/${stock.ticker}`}>
-                            <Badge variant="outline" className="text-xs hover:bg-primary/10 cursor-pointer">
+                            <Badge
+                              variant="outline"
+                              className="text-[11px] px-1.5 py-0 hover:bg-primary/10 cursor-pointer"
+                            >
                               {stock.name}
                             </Badge>
                           </Link>
                         ))
                       ) : (
-                        <span className="text-xs text-muted-foreground">관련 종목 없음</span>
+                        <span className="text-[11px] text-muted-foreground">-</span>
                       )}
                     </div>
+                  </TableCell>
 
+                  <TableCell className="px-2 py-2 align-top text-right">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs gap-1 text-primary hover:text-primary shrink-0"
+                      className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary"
                       asChild
                     >
                       <a href={news.url} target="_blank" rel="noopener noreferrer">
-                        원문
+                        <span className="hidden sm:inline">원문</span>
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+                  </TableCell>
+                </TableRow>
+              ))}
 
-          {serverNews.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">뉴스를 불러오는 중...</div>
-          )}
+              {serverNews.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                    뉴스 불러오는 중...
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
