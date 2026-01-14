@@ -9,12 +9,13 @@ import { NotificationToast } from "@/components/radar/notification-toast"
 import { SectorIndices } from "@/components/radar/sector-indices"
 import { MarketNewsFeed } from "@/components/radar/market-news"
 import { useMarketState } from "@/lib/store"
+import {RealtimeNews} from "@/components/radar/realtime-news";
 
 export function MarketRadarDashboard() {
   const { market, timeRange, setMarket } = useMarketState()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header selectedMarket={market} onMarketChange={setMarket} />
 
       {/* ✅ 모바일 여백 축소 */}
@@ -24,7 +25,7 @@ export function MarketRadarDashboard() {
           {/* Left Column */}
           <div className="lg:col-span-8 space-y-4 sm:space-y-6 min-w-0">
             <MarketOverview market={market} />
-            <MarketNewsFeed />
+            <RealtimeNews />
             <SectorIndices />
             <PriceMovers market={market} />
 
@@ -34,6 +35,7 @@ export function MarketRadarDashboard() {
           <div className="lg:col-span-4 min-w-0">
             {/* ✅ 모바일에서는 sticky/스크롤 박스 OFF, lg부터 ON */}
             <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-20">
+              <MarketNewsFeed />
               <AnomalyFeed market={market} timeRange={timeRange} />
               <AlertSettings />
             </div>

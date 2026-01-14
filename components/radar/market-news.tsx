@@ -67,14 +67,14 @@ export function MarketNewsFeed() {
   }
 
   return (
-    <Card className="border-border/50">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <Newspaper className="h-5 w-5 text-primary" />
           시장 뉴스
         </CardTitle>
         <div className="flex flex-col gap-2 mt-3">
-          {/* 카테고리 필터 */}
+           {/*카테고리 필터*/}
           <div className="flex flex-wrap gap-1">
             {categories.map((category) => (
               <Button
@@ -88,7 +88,7 @@ export function MarketNewsFeed() {
               </Button>
             ))}
           </div>
-          {/* 호재/악재 필터 */}
+           {/*호재/악재 필터*/}
           <div className="flex flex-wrap gap-1">
             {sentiments.map((sentiment) => (
               <Button

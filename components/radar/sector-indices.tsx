@@ -73,7 +73,7 @@ export function SectorIndices() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <Card className="border-border/50 w-full max-w-full overflow-hidden">
+      <Card className="w-full max-w-full overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex gap-3 flex-row items-center justify-between min-w-0">
             <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2 min-w-0">
