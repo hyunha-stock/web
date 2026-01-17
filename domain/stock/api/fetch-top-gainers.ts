@@ -12,7 +12,6 @@ export async function fetchTopGainers(): Promise<Fluctuation[]> {
     `/stocks/v1/top-gainers`,
     {
       method: "GET",
-      credentials: "include",
       headers: {Accept: "application/json"},
       cache: "no-store",
     }

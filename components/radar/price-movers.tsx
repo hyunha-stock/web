@@ -236,7 +236,6 @@ function MoversTable({
                     >
                       <div className="grid items-center grid-cols-[56px_1fr_auto_auto]">
                         <div className="px-3 py-2 text-sm text-muted-foreground tabular-nums">{idx + 1}</div>
-
                         <div className="px-3 py-2 min-w-0">
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="font-semibold text-foreground truncate hover:underline">{s.stockName}</span>
